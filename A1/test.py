@@ -58,7 +58,7 @@ def test_cz2():
                         [0, 0, 0, 1, 0, 0, 0, 0],
                         [0, 0, 0, 0, 1, 0, 0, 0],
                         [0, 0, 0, 0, 0, 1, 0, 0],
-                        [0, 0, 0, 0, 0, 0, 1, 0],
+                        [0, 0, 0, 0, 0, 0, -1, 0],
                         [0, 0, 0, 0, 0, 0, 0, -1]], 
                        dtype=complex)
     assert(np.allclose(tensorized, matrix))
@@ -85,7 +85,7 @@ def test_toffoli1():
 test_cx1()
 test_cx2()
 test_cz1()
-# test_cz2()
+test_cz2()
 test_toffoli1()  
-
+print("All tests passed!") 
 

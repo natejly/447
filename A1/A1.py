@@ -6,7 +6,9 @@
 # Name: Nate Ly
 # NetID: njl36
 # Collaborators:
+# Sources:
 # https://www.youtube.com/watch?v=0ECbWBBbglw
+# https://quantumcomputing.stackexchange.com/questions/4252/how-to-derive-the-cnot-matrix-for-a-3-qubit-system-where-the-control-target-qu
 ####################
 
 import requirement_A1
@@ -239,7 +241,6 @@ class QuantumCircuit(object):
         CZGate = Gate('cz', self.num_q, matrix)
         self._append(CZGate, [ctrl_qubit, trgt_qubit], [])
     
-
     # Toffoli gate
     def toffoli(self, ctrl_qubit_1, ctrl_qubit_2, trgt_qubit):
         # flips the target qubit if both control qubits are 1
