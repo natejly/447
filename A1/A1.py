@@ -184,71 +184,91 @@ class QuantumCircuit(object):
     # Controlled X gate (CNOT)
     def cx(self, ctrl_qubit, trgt_qubit):
         n = self.num_q
-        
         # Initialize a 2^n x 2^n matrix filled with zeros
         matrix = np.zeros((2**n, 2**n), dtype=complex)
-        
-        # Create all possible combinations of n bits (basis states)
+        # Create all possible combinations of n bits for basis
         combos = []
         for i in range(2**n):
             binary = format(i, f'0{n}b')
             combination = [int(b) for b in binary]
-            combos.append(combination)  # Append combination
-
-        print(f"combos1: {combos}")
-        
-        # Create a modified list for combos2 by applying the CNOT operation
+            combos.append(combination)
+        # print(f"combos1: {combos}")
+        # get the combos with cx
         combos2 = []
         for combo in combos:
-            # Copy the current combo
             combo2 = combo.copy()
-            # Flip the target qubit if the control qubit is 1
             if combo2[ctrl_qubit] == 1:
                 combo2[trgt_qubit] = (combo2[trgt_qubit] + 1) % 2
             combos2.append(combo2)
-
-        print(f"combos2: {combos2}")
-        
-        # Fill the matrix according to the transformation from combos to combos2
+        # print(f"combos2: {combos2}")
         for i, combo in enumerate(combos):
-            # Find the corresponding output index in combos2
             j = combos2.index(combo)
             k = combos.index(combo)
-            
-            # Put a 1 in the matrix at the corresponding index
             matrix[j, k] = 1
+        # print(f"matrix: \n {matrix}")
 
-        print(f"matrix: \n {matrix}")
-
-        # Create the CX gate using the full matrix
-        CXGate = Gate('cx', n**2, matrix)
-        
-        # Append the gate to the quantum circuit
+        CXGate = Gate('cx', self.num_q, matrix)
         self._append(CXGate, [ctrl_qubit, trgt_qubit], [])
-
-        
     # Controlled Z gate (CZ)
     def cz(self, ctrl_qubit, trgt_qubit):
-        matrix = np.array([[1, 0, 0, 0], 
-                        [0, 1, 0, 0], 
-                        [0, 0, 1, 0], 
-                        [0, 0, 0, -1]], 
-                        dtype=complex)
-        CZGate = Gate('cz', 2, matrix)
+        n = self.num_q
+        matrix = np.zeros((2**n, 2**self.num_q), dtype=complex)
+        # flip the sign of the state when both qubits are 1
+        combos = []
+        for i in range(2**self.num_q):
+            binary = format(i, f'0{self.num_q}b')
+            combination = [int(b) for b in binary]
+            combos.append(combination)
+        
+        combos2 = []
+        for combo in combos:
+            # transform the combo based on the control and target qubits in cz gate
+            combo2 = combo.copy()
+            if combo2[ctrl_qubit] == 1 and combo2[trgt_qubit] == 1:
+                combo2[trgt_qubit] = -combo2[trgt_qubit]
+            combos2.append(combo2)
+        print(f"combos: {combos}")
+        print(f"combos2: {combos2}")
+        
+        for i in range (len(combos)):
+            if combos[i] == combos2[i]:
+                matrix[i][i] = 1
+            else:
+                matrix[i][i] = -1            
+    
+        CZGate = Gate('cz', self.num_q, matrix)
         self._append(CZGate, [ctrl_qubit, trgt_qubit], [])
     
 
     # Toffoli gate
     def toffoli(self, ctrl_qubit_1, ctrl_qubit_2, trgt_qubit):
-        ToffoliGate = Gate('toffoli', 3, np.array([[1, 0, 0, 0, 0, 0, 0, 0],
-                                                    [0, 1, 0, 0, 0, 0, 0, 0],
-                                                    [0, 0, 1, 0, 0, 0, 0, 0],
-                                                    [0, 0, 0, 1, 0, 0, 0, 0],
-                                                    [0, 0, 0, 0, 1, 0, 0, 0],
-                                                    [0, 0, 0, 0, 0, 1, 0, 0],
-                                                    [0, 0, 0, 0, 0, 0, 0, 1],
-                                                    [0, 0, 0, 0, 0, 0, 1, 0]], 
-                                                   dtype=complex))
+        # flips the target qubit if both control qubits are 1
+        n = self.num_q
+        if n < 3:
+            raise ValueError("Toffoli gate requires at least 3 qubits.")
+        matrix = np.zeros((2**n, 2**n), dtype=complex)
+        # Create all possible combinations of n bits for basis
+        combos = []
+        for i in range(2**n):
+            binary = format(i, f'0{n}b')
+            combination = [int(b) for b in binary]
+            combos.append(combination)
+        # print(f"combos1: {combos}")
+        # get the combos with 
+        combos2 = []
+        for combo in combos:
+            combo2 = combo.copy()
+            if combo2[ctrl_qubit_1] == 1 and combo2[ctrl_qubit_2] == 1:
+                combo2[trgt_qubit] = (combo2[trgt_qubit] + 1) % 2
+            combos2.append(combo2)
+        # print(f"combos2: {combos2}")
+        for i, combo in enumerate(combos):
+            j = combos2.index(combo)
+            k = combos.index(combo)
+            matrix[j, k] = 1
+        # print(f"matrix: \n {matrix}")
+        
+        ToffoliGate = Gate('toffoli', n, matrix)
         self._append(ToffoliGate, [ctrl_qubit_1, ctrl_qubit_2, trgt_qubit], [])
         return
 
