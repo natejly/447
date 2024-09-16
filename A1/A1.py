@@ -3,15 +3,15 @@
 # This is the programming portion of Assignment 1
 # for CPSC 447/547 Intro to Quantum Computing
 #
-# Name: 
-# NetID:
+# Name: Nate Ly
+# NetID: njl36
 # Collaborators:
+# https://www.youtube.com/watch?v=0ECbWBBbglw
 ####################
 
 import requirement_A1
 import math
 import numpy as np
-
 ####################
 # Helper functions
 ####################
@@ -127,43 +127,94 @@ class QuantumCircuit(object):
 
     # Pauli X gate
     def x(self, qubit):
-        return 42
+        XGate = Gate('x', 1, np.array([[0, 1], [1, 0]], dtype=complex))
+        self._append(XGate, [qubit], [])
+        return
 
     # Pauli Y gate
     def y(self, qubit):
-        return 42
+        # j is imaginary unit
+        YGate = Gate('y', 1, np.array([[0, -1j], 
+                                       [1j, 0]], 
+                                      dtype=complex))
+        self._append(YGate, [qubit], [])
+        return
 
     # Pauli Z gate
     def z(self, qubit):
-        return 42
+        ZGate = Gate('z', 1, np.array([[1, 0], 
+                                       [0, -1]], 
+                                      dtype=complex))
+        self._append(ZGate, [qubit], [])
+        return
 
     # Phase gate (sqrt(Z))
     def s(self, qubit):
-        return 42
+        SGate = Gate('s', 1, np.array([[1, 0], 
+                                       [0, 1j]], 
+                                      dtype=complex))
+        self._append(SGate, [qubit], [])
+        return
 
     # S dagger gate (adjoint of S gate)
     def sdg(self, qubit):
-        return 42
+        SDGGate = Gate('sdg', 1, np.array([[1, 0], 
+                                           [0, -1j]], 
+                                          dtype=complex))
+        self._append(SDGGate, [qubit], [])
 
     # T gate (sqrt(S))
     def t(self, qubit):
-        return 42
+        e = np.exp((np.pi * 1j) / 4)
+        TGate = Gate('t', 1, np.array([[1, 0], 
+                                       [0, e]], 
+                                      dtype=complex))
+        self._append(TGate, [qubit], [])
+        return
 
     # T dagger gate (adjoint of T gate)
     def tdg(self, qubit):
-        return 42
+        e = np.exp((-np.pi * 1j) / 4)
+        TDGGate = Gate('tdg', 1, np.array([[1, 0], 
+                                           [0, e]], 
+                                          dtype=complex))
+        self._append(TDGGate, [qubit], [])
+        return
 
     # Controlled X gate (CNOT)
     def cx(self, ctrl_qubit, trgt_qubit):
-        return 42
-
+        matrix = np.array([[1, 0, 0, 0], 
+                            [0, 1, 0, 0], 
+                            [0, 0, 0, 1], 
+                            [0, 0, 1, 0]], 
+                        dtype=complex)
+        CXGate = Gate('cx', 2, matrix)
+        self._append(CXGate, [ctrl_qubit, trgt_qubit], [])
+        
     # Controlled Z gate (CZ)
     def cz(self, ctrl_qubit, trgt_qubit):
-        return 42
+        matrix = np.array([[1, 0, 0, 0], 
+                        [0, 1, 0, 0], 
+                        [0, 0, 1, 0], 
+                        [0, 0, 0, -1]], 
+                        dtype=complex)
+        CZGate = Gate('cz', 2, matrix)
+        self._append(CZGate, [ctrl_qubit, trgt_qubit], [])
+    
 
     # Toffoli gate
     def toffoli(self, ctrl_qubit_1, ctrl_qubit_2, trgt_qubit):
-        return 42
+        ToffoliGate = Gate('toffoli', 3, np.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                                                    [0, 1, 0, 0, 0, 0, 0, 0],
+                                                    [0, 0, 1, 0, 0, 0, 0, 0],
+                                                    [0, 0, 0, 1, 0, 0, 0, 0],
+                                                    [0, 0, 0, 0, 1, 0, 0, 0],
+                                                    [0, 0, 0, 0, 0, 1, 0, 0],
+                                                    [0, 0, 0, 0, 0, 0, 0, 1],
+                                                    [0, 0, 0, 0, 0, 0, 1, 0]], 
+                                                   dtype=complex))
+        self._append(ToffoliGate, [ctrl_qubit_1, ctrl_qubit_2, trgt_qubit], [])
+        return
 
     # Measure qubits in array 'qubits' and store classical outcome in 'cbits'
     # Note: Action of measurement will be defined in simulate function. 
@@ -177,6 +228,7 @@ class QuantumCircuit(object):
     # In-House State Vector Simulator
     ####################
     def tensorizeGate(self, gate, q_arr):
+        
         # A function for extend single gate to 2^n by 2^n unitary matrix
         # OUTPUT: - A unitary matrix of size 2^n by 2^n, where n is self.num_q
         #         - return None if invalid input
@@ -184,12 +236,33 @@ class QuantumCircuit(object):
         #         - in q_arr, the first qubit is the most significant bit (MSB)
         #         - number of qubits in q_arr matches gate.num_q
         #         - need to check if gate is not measure
+        
+        if gate.num_q != len(q_arr) or gate.name == 'measure':
+            return None
+        # temp here we have to actually expand it according to the
+        if gate.name == 'cx' or gate.name == 'cz' or gate.name == 'toffoli':
+            return gate.matrix
 
-        # YOUR IMPLEMENTATION HERE
+        tensor = np.array([[1]], dtype=complex)
+        # 2x2 b/c in 2d space
+        identity = np.array([[1, 0], 
+                             [0, 1]], dtype=complex)
+        # loop and tensor product all qubits
+        for i in range(self.num_q):
+            if i in q_arr:
+                tensor = np.kron(tensor, gate.matrix)
+            else:
+                tensor = np.kron(tensor, identity) 
+        # print(f"size of tensor: {tensor.shape}")
+        # print(f"n qubits: {self.num_q}")
+        return tensor
+    
+    def domeasure(self, qubits, cbits):
+        return
 
-        return gate.matrix
 
     def evolveOneStep(self):
+        """Returns none if measurement is reached"""
         # Evolve one step from program counter pc, update state vector
         # Feel free to use/modify this helper function for simulate.
         # OUTPUT: - Return quantum state after one step of evolution
@@ -198,18 +271,22 @@ class QuantumCircuit(object):
         #         - Return None if evolving measurement
         # ASSUME: - Measurements are assumed to be last operations, if any.
         curr_state = self.curr_state
+        # opperation , qubit array, classical array
         (op, q_arr, c_arr) = self.circuit[self.pc]
         if op.name != 'measure':
             unitary = self.tensorizeGate(op, q_arr)
+            # matrix multiplication
+            # print unitary and curr_state
+            # print(f"unitary: {unitary}")
+            # print(f"curr_state: {curr_state}")
             curr_state = unitary @ curr_state
             self.curr_state = curr_state
             self.pc += 1
             return curr_state
         else:
-            # print("Already reached end of circuit (excluding measurements).")
-            # YOUR IMPLEMENTATION HERE
-            # Use sampleBit(p) for random sampling
-
+        # we have measurement
+            self.domeasure(q_arr, c_arr)
+            self.pc += 1  
             return None
 
     def simulate(self):
@@ -221,8 +298,12 @@ class QuantumCircuit(object):
         #         - Start with initial all-zero state in self.qubits.state
         measured = False
         curr_state = self.qubits.state # initial state
-        # YOUR IMPLEMENTATION HERE
-
+        while self.pc < len(self.circuit):
+            # evolve one step
+            curr_state = self.evolveOneStep()
+            if curr_state is None:
+                measured = True
+                break
 
         self.qubits.state = curr_state # final state
         if measured:
@@ -294,6 +375,7 @@ def testSimulate():
 def testToffoli():
     n = 3
     for val in range(4):
+        print(f"val: {val}")
         q0 = (val >> 0) & 1
         q1 = (val >> 1) & 1
         q2 = 1 if q0 == 1 and q1 == 1 else 0  # Toffoli gate: flip q2 if and only if both q0 and q1 is 1
@@ -303,11 +385,14 @@ def testToffoli():
         if q1 == 1:
             qc.x(1)
         qc.toffoli(0,1,2)
+        # breaking here 
         qc.simulate()
         qc.measure(list(range(n)),list(range(n)))
         outcome = qc.simulate()
+        print(f"outcome: {outcome}")
+        print(f"expected: {np.array([bool(q0), bool(q1), bool(q2)])}")
         assert(bool(all(outcome == np.array([bool(q0), bool(q1), bool(q2)]))))
-        
+    
 
 ####################
 # Main tests
@@ -315,17 +400,26 @@ def testToffoli():
 
 def testAll():
     testStateInit()
+    print("Passed testStateInit")
     testGates()
+    print("Passed testGates")
     testCircuit()
+    print("Passed testCircuit")
     testHGatesTensorize()
+    print("Passed testHGatesTensorize")
     testHGatesTensorize2()
+    print("Passed testHGatesTensorize2")
     testEvolve()
+    print("Passed testEvolve")
     testSimulate()
+    print("Passed testSimulate")
     testToffoli()
+    print("Passed testToffoli")
     # ... You can add more or comment out tests
 
 def main():
     requirement_A1.check()
+    print("requirenment check passed")
     testAll()
 
 if __name__ == '__main__':
