@@ -183,13 +183,49 @@ class QuantumCircuit(object):
 
     # Controlled X gate (CNOT)
     def cx(self, ctrl_qubit, trgt_qubit):
-        matrix = np.array([[1, 0, 0, 0], 
-                            [0, 1, 0, 0], 
-                            [0, 0, 0, 1], 
-                            [0, 0, 1, 0]], 
-                        dtype=complex)
-        CXGate = Gate('cx', 2, matrix)
+        n = self.num_q
+        
+        # Initialize a 2^n x 2^n matrix filled with zeros
+        matrix = np.zeros((2**n, 2**n), dtype=complex)
+        
+        # Create all possible combinations of n bits (basis states)
+        combos = []
+        for i in range(2**n):
+            binary = format(i, f'0{n}b')
+            combination = [int(b) for b in binary]
+            combos.append(combination)  # Append combination
+
+        print(f"combos1: {combos}")
+        
+        # Create a modified list for combos2 by applying the CNOT operation
+        combos2 = []
+        for combo in combos:
+            # Copy the current combo
+            combo2 = combo.copy()
+            # Flip the target qubit if the control qubit is 1
+            if combo2[ctrl_qubit] == 1:
+                combo2[trgt_qubit] = (combo2[trgt_qubit] + 1) % 2
+            combos2.append(combo2)
+
+        print(f"combos2: {combos2}")
+        
+        # Fill the matrix according to the transformation from combos to combos2
+        for i, combo in enumerate(combos):
+            # Find the corresponding output index in combos2
+            j = combos2.index(combo)
+            k = combos.index(combo)
+            
+            # Put a 1 in the matrix at the corresponding index
+            matrix[j, k] = 1
+
+        print(f"matrix: \n {matrix}")
+
+        # Create the CX gate using the full matrix
+        CXGate = Gate('cx', n**2, matrix)
+        
+        # Append the gate to the quantum circuit
         self._append(CXGate, [ctrl_qubit, trgt_qubit], [])
+
         
     # Controlled Z gate (CZ)
     def cz(self, ctrl_qubit, trgt_qubit):
@@ -228,7 +264,7 @@ class QuantumCircuit(object):
     # In-House State Vector Simulator
     ####################
     def tensorizeGate(self, gate, q_arr):
-        
+
         # A function for extend single gate to 2^n by 2^n unitary matrix
         # OUTPUT: - A unitary matrix of size 2^n by 2^n, where n is self.num_q
         #         - return None if invalid input
@@ -236,13 +272,11 @@ class QuantumCircuit(object):
         #         - in q_arr, the first qubit is the most significant bit (MSB)
         #         - number of qubits in q_arr matches gate.num_q
         #         - need to check if gate is not measure
-        
+        if gate.name == 'cx' or gate.name == 'cz' or gate.name == 'toffoli':
+            return gate.matrix
         if gate.num_q != len(q_arr) or gate.name == 'measure':
             return None
         # temp here we have to actually expand it according to the
-        if gate.name == 'cx' or gate.name == 'cz' or gate.name == 'toffoli':
-            return gate.matrix
-
         tensor = np.array([[1]], dtype=complex)
         # 2x2 b/c in 2d space
         identity = np.array([[1, 0], 
