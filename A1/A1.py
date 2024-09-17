@@ -5,7 +5,7 @@
 #
 # Name: Nate Ly
 # NetID: njl36
-# Collaborators:
+# Collaborators: Alvin Lu for the optional part 
 # Sources:
 # https://www.youtube.com/watch?v=0ECbWBBbglw
 # https://quantumcomputing.stackexchange.com/questions/4252/how-to-derive-the-cnot-matrix-for-a-3-qubit-system-where-the-control-target-qu
