@@ -9,6 +9,7 @@
 # Sources:
 # https://www.youtube.com/watch?v=0ECbWBBbglw
 # https://quantumcomputing.stackexchange.com/questions/4252/how-to-derive-the-cnot-matrix-for-a-3-qubit-system-where-the-control-target-qu
+# https://quantumcomputing.stackexchange.com/questions/18044/how-the-single-qubit-unitary-u-calculates-when-apply-a-gate-to-only-one-qubit
 ####################
 
 import requirement_A1
@@ -123,13 +124,15 @@ class QuantumCircuit(object):
     # Hadamard gate
     def h(self, qubit):
         # Define Gate by its name, kind (number of qubit), and matrix
-        HGate = Gate('h', 1, 1/np.sqrt(2) * np.array([[1,1],[1,-1]], dtype=complex))
+        HGate = Gate('h', 1, 1/np.sqrt(2) * np.array([[1,1],
+                                                      [1,-1]], dtype=complex))
         self._append(HGate, [qubit], [])
         return
 
     # Pauli X gate
     def x(self, qubit):
-        XGate = Gate('x', 1, np.array([[0, 1], [1, 0]], dtype=complex))
+        XGate = Gate('x', 1, np.array([[0, 1], 
+                                       [1, 0]], dtype=complex))
         self._append(XGate, [qubit], [])
         return
 
@@ -229,8 +232,8 @@ class QuantumCircuit(object):
             if combo2[ctrl_qubit] == 1 and combo2[trgt_qubit] == 1:
                 combo2[trgt_qubit] = -combo2[trgt_qubit]
             combos2.append(combo2)
-        print(f"combos: {combos}")
-        print(f"combos2: {combos2}")
+        # print(f"combos: {combos}")
+        # print(f"combos2: {combos2}")
         
         for i in range (len(combos)):
             if combos[i] == combos2[i]:
@@ -285,36 +288,47 @@ class QuantumCircuit(object):
     # In-House State Vector Simulator
     ####################
     def tensorizeGate(self, gate, q_arr):
+            # A function for extend single gate to 2^n by 2^n unitary matrix
+            # OUTPUT: - A unitary matrix of size 2^n by 2^n, where n is self.num_q
+            #         - return None if invalid input
+            # ASSUME: - gate applies to qubits in q_arr
+            #         - in q_arr, the first qubit is the most significant bit (MSB)
+            #         - number of qubits in q_arr matches gate.num_q
+            #         - need to check if gate is not measure
+            if gate.name in ['cx', 'cz', 'toffoli']:
+                return gate.matrix
+            if gate.num_q != len(q_arr) or gate.name == 'measure':
+                return None
 
-        # A function for extend single gate to 2^n by 2^n unitary matrix
-        # OUTPUT: - A unitary matrix of size 2^n by 2^n, where n is self.num_q
-        #         - return None if invalid input
-        # ASSUME: - gate applies to qubits in q_arr
-        #         - in q_arr, the first qubit is the most significant bit (MSB)
-        #         - number of qubits in q_arr matches gate.num_q
-        #         - need to check if gate is not measure
-        if gate.name == 'cx' or gate.name == 'cz' or gate.name == 'toffoli':
-            return gate.matrix
-        if gate.num_q != len(q_arr) or gate.name == 'measure':
-            return None
-        # temp here we have to actually expand it according to the
-        tensor = np.array([[1]], dtype=complex)
-        # 2x2 b/c in 2d space
-        identity = np.array([[1, 0], 
-                             [0, 1]], dtype=complex)
-        # loop and tensor product all qubits
-        for i in range(self.num_q):
-            if i in q_arr:
-                tensor = np.kron(tensor, gate.matrix)
-            else:
-                tensor = np.kron(tensor, identity) 
-        # print(f"size of tensor: {tensor.shape}")
-        # print(f"n qubits: {self.num_q}")
-        return tensor
-    
+            n = self.num_q 
+            full_matrix = np.eye(1, dtype=complex)  # Initialize as a 1x1 matrix to build upon
+                    
+            # Iterate through all qubits in the system
+            for i in range(n):
+                # If the current qubit index is in q_arr, apply the gate's matrix
+                if i in q_arr:
+                    # Find the position of the qubit in q_arr and apply the gate matrix
+                    full_matrix = np.kron(full_matrix, gate.matrix)
+                else:
+                    # Apply identity matrix for qubits not in q_arr
+                    full_matrix = np.kron(full_matrix, np.eye(2, dtype=complex))
+            
+            return full_matrix
+
     def domeasure(self, qubits, cbits):
-        return
+        r = np.random.random_sample()
+        prob = 0.0
+        measured_state = -1
 
+        for i, amplitude in enumerate(self.curr_state):
+            prob += np.abs(amplitude)**2
+            if r < prob:
+                measured_state = i
+                break
+
+        for i in range(len(cbits)):
+            cbits[len(cbits) - i - 1] = bool(measured_state & 1)
+            measured_state >>= 1
 
     def evolveOneStep(self):
         """Returns none if measurement is reached"""
@@ -339,10 +353,10 @@ class QuantumCircuit(object):
             self.pc += 1
             return curr_state
         else:
-        # we have measurement
-            self.domeasure(q_arr, c_arr)
-            self.pc += 1  
+            self.domeasure(q_arr, self.cbits.state)
+            self.pc += 1
             return None
+
 
     def simulate(self):
         # A function for simulating circuit from scratch (from pc = 0).
@@ -430,7 +444,7 @@ def testSimulate():
 def testToffoli():
     n = 3
     for val in range(4):
-        print(f"val: {val}")
+        # print(f"val: {val}")
         q0 = (val >> 0) & 1
         q1 = (val >> 1) & 1
         q2 = 1 if q0 == 1 and q1 == 1 else 0  # Toffoli gate: flip q2 if and only if both q0 and q1 is 1
@@ -444,8 +458,8 @@ def testToffoli():
         qc.simulate()
         qc.measure(list(range(n)),list(range(n)))
         outcome = qc.simulate()
-        print(f"outcome: {outcome}")
-        print(f"expected: {np.array([bool(q0), bool(q1), bool(q2)])}")
+        # print(f"outcome: {outcome}")
+        # print(f"expected: {np.array([bool(q0), bool(q1), bool(q2)])}")
         assert(bool(all(outcome == np.array([bool(q0), bool(q1), bool(q2)]))))
     
 
