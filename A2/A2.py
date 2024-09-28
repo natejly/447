@@ -122,22 +122,33 @@ class QuantumRegister(object):
         Return a new QuantumRegister by selecting a subset of qubits
         ids: list of qubit ids
         '''
+        # id's is the list of indices of qubits to select
+        indices = ids.copy()
+        # check nonempty
+        if len(indices) == 0:
+            raise Exception("ids must be non-empty!")
         
-        # Task 5.1 ==================================================================
-        # YOUR IMPLEMENTATION HERE
-
-        # ============================================================================
-
+        qubits = [self.array[i] for i in indices]
+        
+        # innit new qreg
+        qreg = QuantumRegister(qubits)
+        return qreg
+        
     def __add__(self, other):
         '''
         Return a new QuantumRegister by concatenating two QuantumRegisters
         other: a QuantumRegister
         '''
+        qubits1 = self.array
+        qubits2 = other.array
+        qubits = qubits1 + qubits2
+        qreg = QuantumRegister(qubits)
+        # update new_q
+        qreg.new_q = self.new_q + other.new_q
+        # update size
+        qreg.size = len(qubits)
+        return qreg
         
-        # Task 5.1 ==================================================================
-        # YOUR IMPLEMENTATION HERE
-
-        # ============================================================================
 
 class ClassicalRegister(object):
     """ClassicalRegister is where we keep track of measurement outcomes"""
@@ -723,8 +734,8 @@ def testCompileFullyConnectedRemoteCNOT():
 
 def testAll():
     # public tests (feel free to uncomment them below)
-    # testSelect1()  # 5.1
-    # testAdd1()  # 5.1
+    testSelect1()  # 5.1
+    testAdd1()  # 5.1
     # testAllocateNone()  # 5.2
     # testAllocateFive()  # 5.2
     # testModuleBsimple()  # 5.3
