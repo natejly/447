@@ -176,22 +176,33 @@ class ClassicalRegister(object):
         Return a new ClassicalRegister by selecting a subset of cbits
         ids: list of cbit ids
         '''
+        # id's is the list of indices of cbits to select
+        indices = ids.copy()
+        # check nonempty
+        if len(indices) == 0:
+            raise Exception("ids must be non-empty!")
         
-        # Task 5.1 ==================================================================
-        # YOUR IMPLEMENTATION HERE
-
-        # ============================================================================
+        cbits = [self.state[i] for i in indices]
+        
+        # innit new creg
+        creg = ClassicalRegister(cbits)
+        return creg
+    
 
     def __add__(self, other):
         '''
         Return a new ClassicalRegister by concatenating two ClassicalRegisters
         other: a ClassicalRegister
         '''
-        
-        # Task 5.1 ==================================================================
-        # YOUR IMPLEMENTATION HERE
-
-        # ============================================================================
+        cbits1 = self.state
+        cbits2 = other.state
+        cbits = np.concatenate((cbits1, cbits2))
+        creg = ClassicalRegister(cbits)
+        # update new_c
+        creg.new_c = self.new_c + other.new_c
+        # update size
+        creg.size = len(cbits)
+        return creg
 
 class Gate(object):
     """Gate object to describe its name, kind, and matrix"""
@@ -250,12 +261,28 @@ class QuantumCircuit(object):
         new: number of new qubits&cbits to allocate
         Return (qreg, creg) where qreg is a QuantumRegister and creg is a ClassicalRegister
         '''
-        
-        # Task 5.2 ==================================================================
-        # YOUR IMPLEMENTATION HERE
+        creg = self.cbits.select(ids)
 
-        return (0, 0)
-        # ============================================================================
+        qreg = self.qubits.select(ids)
+        
+        # allocate size new by changeing the size of qreg and creg
+        if new > 0:
+            qreg.size = qreg.size + new
+            creg.size = creg.size + new
+            for i in range(0,new):
+                # add new qubit to qreg with value i
+                qreg.array.append(Qubit(i, qreg.label))
+                qreg.new_q.append(True)
+                # add new cbit to creg with value False
+                creg.state = np.append(creg.state, False)
+                creg.new_c.append(True)
+                
+                
+        return (qreg, creg)
+            
+        
+
+    
 
     def circ_to_string(self, level=0):
         # Helper function for displaying quantum circuit
@@ -736,8 +763,10 @@ def testAll():
     # public tests (feel free to uncomment them below)
     testSelect1()  # 5.1
     testAdd1()  # 5.1
-    # testAllocateNone()  # 5.2
-    # testAllocateFive()  # 5.2
+    print("passed 5.1")
+    testAllocateNone()  # 5.2\
+    testAllocateFive()  # 5.2
+    print("passed 5.2") 
     # testModuleBsimple()  # 5.3
     # testModuleAsimple()  # 5.3
     # testCompileFullyConnectedSyntheticAlgoN4()  # 5.3
