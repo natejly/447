@@ -79,12 +79,22 @@ class Backend(object):
         n: a (non-negative) integer for the number of new qubits to allocate
         Return a list of indices (of length n) for those new qubits
         '''
-
-        # Task 5.5 ==================================================================
-    	# YOUR IMPLEMENTATION HERE
-
-        return None
-        # ============================================================================
+        if self.variable:
+            self.num_q += n
+            new_qubits = []
+            for i in range(self.num_q - n, self.num_q):
+                new_qubits.append(Qubit(i, self.label))
+            self.all_qubits = new_qubits
+            indices = [i for i in range(self.num_q - n, self.num_q)]
+            self.in_use += n
+            return indices
+        else:
+            if self.in_use + n > self.num_q:
+                raise Exception("Allocation error: not enough qubits!.")
+            self.in_use += n
+            # don't touch quibits
+            indices = [i for i in range(self.in_use - n, self.in_use)]
+            return indices
 
 
 class QuantumRegister(object):
