@@ -80,12 +80,13 @@ class Backend(object):
         Return a list of indices (of length n) for those new qubits
         '''
         if self.variable:
+            # find number in use
             self.num_q += n
             new_qubits = []
             for i in range(self.num_q - n, self.num_q):
                 new_qubits.append(Qubit(i, self.label))
-            self.all_qubits = new_qubits
             indices = [i for i in range(self.num_q - n, self.num_q)]
+            self.all_qubits += new_qubits
             self.in_use += n
             return indices
         else:
@@ -424,9 +425,17 @@ class QuantumCircuit(object):
         # For each qubit in the circuit, check if it is already allocated in the backend with the new_q attribute
         # If not, allocate a new qubit and update the mappings
         # YOUR IMPLEMENTATION HERE
-
+        for i in range(self.num_q):
+            if self.qubits.new_q[i]:
+                index = backend.alloc(1)[0]
+                qubits_mapping[i] = index
+                
+        for j in range(self.num_c):
+            if self.cbits.new_c[j]:
+                cbits_mapping[j] = j  
+        
+                
         # ============================================================================
-
         # Task 5.6.2 ==================================================================
         # Compile the circuit to the backend
         # For each operation in the circuit
@@ -435,6 +444,30 @@ class QuantumCircuit(object):
         # YOUR IMPLEMENTATION HERE
 
         # ============================================================================
+        for op, q_arr, c_arr in self.circuit:
+            #base case 
+            if isinstance(op, Gate):
+                if q_arr:
+                    backend_q_arr = [qubits_mapping[q] for q in q_arr]
+                else:
+                    backend_q_arr = []
+                if c_arr:
+                    backend_c_arr = [cbits_mapping[c] for c in c_arr]
+                else:
+                    backend_c_arr = []
+                flatten_circuit.append((op, backend_q_arr, backend_c_arr))
+            elif isinstance(op, QuantumCircuit):
+                # have to make new maps for subsircuits
+                newq = {}
+                newc = {}
+                # setups new maps re indexed at 0
+                for i, q in enumerate(q_arr):
+                    newq[i] = qubits_mapping[q]
+                for i, c in enumerate(c_arr):
+                    newc[i] = cbits_mapping[c]
+
+                subcircuit = op.compile_fully_connected(backend, newq, newc)
+                flatten_circuit.extend(subcircuit)
         
         return flatten_circuit
 
@@ -581,15 +614,6 @@ def remoteCNOT():
     b_update = QuantumCircuit(bob_qreg, shared_creg)
     bob_update(b_update)
     qc._append(b_update, bob_ids, alice_ids + bob_ids)
-
-    
-
-    
-
-
-    
-    
-
     # ============================================================================
     
     return qc
@@ -728,6 +752,7 @@ def testAliceUpdate():
 
 def testCompileFullyConnectedSyntheticAlgoN4():
     backend = Backend(8, "moduleB")
+    # print backend stuff
     qc = synthetic_algo()
     circuit = qc.compile_fully_connected(backend)
     example_seq = [('h', [0]), ('h', [1]), ('h', [2]), ('h', [3]), ('cx', [0, 4]), ('cx', [1, 0]), ('cx', [1, 4]), ('tdg', [0]), ('t', [1])
@@ -839,14 +864,20 @@ def testAll():
     testRemoteCNOT()
     print("passed 5.4")
     testBackendAllocOnce()  # 5.5
-    testCompileHierarchySimple()  # 5.6
+    print("passed 5.5")
+    # testCompileHierarchySimple()  # 5.6
     testCompile() # 5.7
     # ... You can add more or comment out tests
     pass
+def testCompile():
+    testCompileFullyConnectedSyntheticAlgoN4()  # 5.3
+    testCompileFullyConnectedRemoteCNOT() # 5.4
+    # testCompileHierarchySimple()
 
 def main():
     requirement_A2.check()
-    testAll()
+    # testAll()
+    testCompile()
 
 
 if __name__ == '__main__':
